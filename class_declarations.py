@@ -138,10 +138,6 @@ class MySequencial(ABC):
     def predict(self, X):
         return np.array([[self.predictOneElem(elem) for elem in X]])
     
-    def compile(self, loss="binaryCrossentropy",
-                optimizer="GD", metrics=['accuracy']):
-        return
-    
     def fit(self, data_train, data_valid, loss="binaryCrossentropy",
             learning_rate=0.0314, batch_size=8, epochs=15):
         return
