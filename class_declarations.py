@@ -1,64 +1,13 @@
 from abc import ABC
 import numpy as np
 from typing import Any
-
-
-def sigmoid(z):
-    return 1 / (1 + np.exp(-z))
-
-
-def relu(z):
-    return np.max(0, z)
-
-
-def linear(z):
-    return z
-
-
-def softmax(z):
-    return
-
-
-def constantWeightInit(input_units, output_units, value=1):
-    return np.ones(input_units, output_units) * value
-
-
-def uniformWeightInit(input_units, output_units, low=-0.05, high=0.05):
-    return np.random.uniform(low, high, size=(input_units, output_units))
-
-
-def normalWeightInit(input_units, output_units, mean=0.0, std=0.05):
-    return np.random.normal(mean, std, size=(input_units, output_units))
-
-
-def leCunUniformWeightInit(in_units, out_units):
-    limit = np.sqrt(3 / float(in_units))
-    return np.random.uniform(low=-limit, high=limit, size=(in_units, out_units))
-
-
-def leCunNormalWeightInit(in_units, out_units):
-    limit = np.sqrt(1 / float(in_units))
-    return np.random.normal(0.0, limit, size=(in_units, out_units))
-    
-
-def xavierUniformWeightInit(in_units, out_units):
-    limit = np.sqrt(6 / float(in_units + out_units))
-    return np.random.uniform(-limit, limit, size=(in_units, out_units))
-    
-
-def xavierNormalWeightInit(in_units, out_units):
-    limit = np.sqrt(2 / float(in_units + out_units))
-    return np.random.normal(0.0, limit, size=(in_units, out_units))
-
-
-def heUniformWeightInit(in_units, out_units):
-    limit = np.sqrt(6 / float(in_units))
-    return np.random.uniform(low=-limit, high=limit, size=(in_units, out_units))
-
-
-def heNormalWeightInit(in_units, out_units):
-    limit = np.sqrt(2 / float(in_units))
-    return np.random.normal(0.0, limit, size=(in_units, out_units))
+from activation_functions import sigmoid, softmax, linear, relu
+from weightInitialisor import constantOnesWI, constantZerosWI
+from weightInitialisor import uniformWI, normalWI
+from weightInitialisor import leCunNormalWI, leCunUniformWI
+from weightInitialisor import xavierNormalWI, xavierUniformWI
+from weightInitialisor import heNormalWI, heUniformWI
+from loss_functions import binaryCrossentropyLoss
 
 
 # Besoin de gerer weights_initializer
@@ -86,11 +35,11 @@ class DenseLayer(ABC):
             self.input_shape = len(W)
             self.W = W
         else:
-            self.W = np.random.rand(self.input_shape, nb_Node)
+            self.W = self.weights_initializer(self.input_shape, nb_Node)
         if b is not None:
             self.b = b
         else:
-            self.b = np.random.rand(nb_Node)
+            self.b = np.zeros(nb_Node)
         
     def propag(self, a_in):
         z = self.W.transpose() @ a_in + self.b
@@ -112,44 +61,46 @@ class DenseLayer(ABC):
 
     def setWeightInit(self, weights_initializer = 'heUniform'):
         match weights_initializer:
-            case "constant":
-                self.weights_initializer = constantWeightInit
+            case "constantZeros":
+                self.weights_initializer = constantZerosWI
+            case "constantOnes":
+                self.weights_initializer = constantOnesWI
             case "uniform":
-                self.weights_initializer = uniformWeightInit
+                self.weights_initializer = uniformWI
             case "normal":
-                self.weights_initializer = normalWeightInit
+                self.weights_initializer = normalWI
             case "leCunUniform":
-                self.weights_initializer = leCunUniformWeightInit
+                self.weights_initializer = leCunUniformWI
             case "leCunNormal":
-                self.weights_initializer = leCunNormalWeightInit
+                self.weights_initializer = leCunNormalWI
             case "xavierUniform":
-                self.weights_initializer = xavierUniformWeightInit
+                self.weights_initializer = xavierUniformWI
             case "xavierNormal":
-                self.weights_initializer = xavierNormalWeightInit
+                self.weights_initializer = xavierNormalWI
             case "heUniform":
-                self.weights_initializer = heUniformWeightInit
+                self.weights_initializer = heUniformWI
             case "heNormal":
-                self.weights_initializer = heNormalWeightInit
+                self.weights_initializer = heNormalWI
             case _:
                 raise ValueError("Unknowed weights_initializer function")
             
     def setAsInputLayer(self):
-        # for i in len()
+        self.W = np.diag(np.ones(self.input_shape))
         return
 
     def setInputShape(self, input_shape):
         self.input_shape = input_shape
         # Uniquement si changement de la taille de W besoin de le redefinir
         if self.input_shape != len(self.W):
-            self.W = np.random.rand(self.input_shape, self.nb_Node)
+            self.W = self.weights_initializer(self.input_shape, self.nb_Node)
 
     def printLayer(self) -> None:
         print("Layer Name:",self.layerName)
-        print("Shape W:",self.W.shape)
-        print("W:",self.W)
+        print("Shape W:", self.W.shape)
+        print("W:", self.W)
         print("Shape b:", self.b.shape)
         print("b:", self.b)
-        print("activation:", self.activation, "\n")
+        print("activation:", self.activation)
         print("weights_initializer:", self.weights_initializer, "\n")
 
 
@@ -159,10 +110,17 @@ class MySequencial(ABC):
         """My Model constructor"""
         super().__init__()
         self.layers = []
-        for layer in layers:
+        prev_out_size = 0
+        for i in range(len(layers)):
+            layer = layers[i]
             if not isinstance(layer, DenseLayer):
                 raise ValueError("MySequencial needs DenseLayer as argument")
-            # Besoin de modifier le layer en fonction de ce qu'on a deja recu.
+            # Input Layer: 
+            if i == 0:
+                layer.setAsInputLayer()
+            else:
+                layer.setInputShape(prev_out_size)
+            prev_out_size = layer.nb_Node
             self.layers.append(layer)
     
     def summary(self) -> None:
@@ -170,14 +128,27 @@ class MySequencial(ABC):
             print("----------- Layer", i + 1, "-----------")
             self.layers[i].printLayer()
 
-    def propag(self, x):
+    def predictOneElem(self, x):
         a_in = x
         for layer in self.layers:
             a_out = layer.propag(a_in)
             a_in = a_out
         return a_out
+        
+    def predict(self, X):
+        return np.array([[self.predictOneElem(elem) for elem in X]])
+    
+    def compile(self, loss="binaryCrossentropy",
+                optimizer="GD", metrics=['accuracy']):
+        return
+    
+    def fit(self, data_train, data_valid, loss="binaryCrossentropy",
+            learning_rate=0.0314, batch_size=8, epochs=15):
+        return
+    
+    def cost(self, X, Y):
+        m = X.shape[0]
+        cost = (1 / m) * sum([binaryCrossentropyLoss(self, x, y) for x, y in zip(X, Y)])
+        return cost
 
-            
-
-
-
+    # Finir https://www.coursera.org/learn/advanced-learning-algorithms/lecture/35RQ3/training-details
