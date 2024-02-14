@@ -109,7 +109,7 @@ class DenseLayer(ABC):
                 self.activation = softmax
             case _:
                 raise ValueError("Unknowed activation function")
-    
+
     def setWeightInit(self, weights_initializer = 'heUniform'):
         match weights_initializer:
             case "constant":
@@ -132,14 +132,17 @@ class DenseLayer(ABC):
                 self.weights_initializer = heNormalWeightInit
             case _:
                 raise ValueError("Unknowed weights_initializer function")
+            
+    def setAsInputLayer(self):
+        # for i in len()
+        return
 
-    
     def setInputShape(self, input_shape):
         self.input_shape = input_shape
         # Uniquement si changement de la taille de W besoin de le redefinir
         if self.input_shape != len(self.W):
             self.W = np.random.rand(self.input_shape, self.nb_Node)
-    
+
     def printLayer(self) -> None:
         print("Layer Name:",self.layerName)
         print("Shape W:",self.W.shape)
@@ -147,6 +150,7 @@ class DenseLayer(ABC):
         print("Shape b:", self.b.shape)
         print("b:", self.b)
         print("activation:", self.activation, "\n")
+        print("weights_initializer:", self.weights_initializer, "\n")
 
 
 class MySequencial(ABC):
