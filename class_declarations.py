@@ -39,12 +39,12 @@ class DenseLayer(ABC):
         if b is not None:
             self.b = b
         else:
-            self.b = np.zeros(nb_Node)
+            self.b = np.zeros((1, nb_Node))
         
-    def propag(self, a_in):
-        z = self.W.transpose() @ a_in + self.b
-        a_out = self.activation(z)
-        return a_out
+    def forward(self, a_in):
+        z = a_in @ self.W + self.b
+        self.output = self.activation(z)
+        return self.output
     
     def setActivation(self, activation = "relu"):
         match activation:
@@ -127,16 +127,13 @@ class MySequencial(ABC):
         for i in range(len(self.layers)):
             print("----------- Layer", i + 1, "-----------")
             self.layers[i].printLayer()
-
-    def predictOneElem(self, x):
-        a_in = x
-        for layer in self.layers:
-            a_out = layer.propag(a_in)
-            a_in = a_out
-        return a_out
         
     def predict(self, X):
-        return np.array([[self.predictOneElem(elem) for elem in X]])
+        a_in = X
+        for layer in self.layers:
+            a_out = layer.forward(a_in)
+            a_in = a_out
+        return a_out
     
     def fit(self, data_train, data_valid, loss="binaryCrossentropy",
             learning_rate=0.0314, batch_size=8, epochs=15):
@@ -144,7 +141,7 @@ class MySequencial(ABC):
     
     def cost(self, X, Y):
         m = X.shape[0]
-        cost = (1 / m) * sum([binaryCrossentropyLoss(self, x, y) for x, y in zip(X, Y)])
+        cost = (1 / m) * sum(binaryCrossentropyLoss(self, X, Y))
         return cost[0]
 
     # Finir https://www.coursera.org/learn/advanced-learning-algorithms/lecture/35RQ3/training-details
