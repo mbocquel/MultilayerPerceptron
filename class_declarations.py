@@ -145,6 +145,6 @@ class MySequencial(ABC):
     def cost(self, X, Y):
         m = X.shape[0]
         cost = (1 / m) * sum([binaryCrossentropyLoss(self, x, y) for x, y in zip(X, Y)])
-        return cost
+        return cost[0]
 
     # Finir https://www.coursera.org/learn/advanced-learning-algorithms/lecture/35RQ3/training-details
