@@ -1,8 +1,7 @@
 from abc import ABC
 import numpy as np
-from LossFunctions import binaryCrossentropyLoss
+from LossFunctions import setLossFunction
 from DenseLayer import DenseLayer
-
 
 class MySequencial(ABC):
     """Class for the Model"""
@@ -39,51 +38,67 @@ class MySequencial(ABC):
             a_in = a_out
         return a_out
     
-    def back_propag(self, X_batch, y_batch):
+    def back_propag(self, X_batch, y_batch, alpha):
         # On commence par forward propag
         self.predict(X_batch)
         # Set Error for Last layer
         self.layers[-1].setErrorLastLayer(y_batch)
         previousLayer = self.layers[-1]
-        # set Error for Hidden layers
+        # Set Error for Hidden layers
         for i in reversed(range(1, len(self.layers)-1)):
             self.layers[i].setError(previousLayer)
             previousLayer = self.layers[i]
-        # Change the params     
-            
+        # Update the weight
+        for layer in self.layers[1:]:
+            saveW = []
+            saveBias = []
+            for input, delta in zip(layer.input, layer.delta):
+                W = layer.W.copy()
+                bias = layer.b
+                for numNode in range(layer.nb_Node):
+                    for numFeature in range(len(input)):
+                        W[numFeature][numNode] -= alpha * delta[numNode] * input[numFeature]
+                    bias[0][numNode] -= alpha * delta[numNode]  
+                saveW.append(W)
+                saveBias.append(bias)
+            layer.W = sum(saveW)/len(saveW)
+            layer.b = sum(saveBias) / len(saveBias)
+
     
     def fit(self, data_train, data_valid, loss="binaryCrossentropy",
             alpha=0.0314, batch_size=8, epochs=15):
-        
+        lossFunction = setLossFunction(loss)
+        self.lossTrain = []
+        self.lossVal = []
         X_val = data_valid[:, :-1]
         y_val = data_valid[:, -1]
         assert batch_size > 0, "batch_size need to be > 0"
-        nb_batch = len(data_train) / batch_size  + 1
+        nb_batch = int(len(data_train) / batch_size)  + 1
         if len(data_train) % batch_size == 0:
             nb_batch = nb_batch - 1
         for epoch in range(epochs):
-            print(f"epoch {epoch} :")
-            np.random.shuffle(data_train)
-            X_train = data_train[:, :-1]
-            y_train = data_train[:, -1]
+            data = data_train.copy()
+            np.random.shuffle(data)
+            X_train = data[:, :-1]
+            y_train = data[:, -1]
             X_batchs = [X_train[i:i+batch_size] for i in range(0, len(X_train), batch_size)]
             y_batchs = [y_train[i:i+batch_size] for i in range(0, len(y_train), batch_size)]
             num_batch = 0
             for X_batch, y_batch in zip(X_batchs, y_batchs):
                 num_batch += 1
-                self.back_propag(X_batch, y_batch)
-                print(f"{num_batch}/{nb_batch} - accuracy: {self.accuracy(X_train, y_train)}, ", end='', flush=True)
-                print(f"loss:{self.cost(X_train, y_train)}, val accuracy: {self.accuracy(X_val, y_val)}, ", end='', flush=True)
-                print(f"val loss: {self.cost(X_val, y_val)} \r", end='', flush=True)
+                self.back_propag(X_batch, y_batch, alpha)   
+                trainloss = lossFunction(self, X_train, y_train)
+                print(f"epoch {epoch} : {num_batch}/{nb_batch} - accuracy: {self.accuracy(X_train, y_train)}, ", end='')
+                print(f"loss:{trainloss}\r", end='', flush=True)
+            valLoss = lossFunction(self, X_val, y_val)
+            print(f"epoch {epoch} : {nb_batch}/{nb_batch} - accuracy: {self.accuracy(X_train, y_train)}, ", end='')
+            print(f"loss:{trainloss}, val accuracy: {self.accuracy(X_val, y_val)}, ", end='', flush=True)
+            print(f"val loss: {valLoss}")
+            self.lossTrain.append(trainloss)
+            self.lossVal.append(valLoss)
         return
-
-    def cost(self, X, Y):
-        m = X.shape[0]
-        cost = (1 / m) * sum(binaryCrossentropyLoss(self, X, Y))
-        return cost[0]
     
     def accuracy(self, X, Y):
-        return 0
-    
-    def update_mini_batch(self, mini_batch, learning_rate):
-        return
+        y_prediction = np.argmax(self.predict(X), axis=1)
+        correct_predictions = np.sum(Y == y_prediction)
+        return correct_predictions / len(Y)

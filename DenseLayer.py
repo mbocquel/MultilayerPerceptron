@@ -46,13 +46,13 @@ class DenseLayer(ABC):
     def forward(self, a_in):
         self.input = a_in
         self.z = a_in @ self.W + self.b
-        self.output = [self.activation(z) for z in self.z]
+        self.output = np.array([self.activation(z) for z in self.z])
         return self.output
     
     def setErrorLastLayer(self, y):
         expected = np.zeros((len(y),self.nb_Node))
         for i in range(len(y)):
-            expected[i][y[i]] = 1
+            expected[i][int(y[i])] = 1
         self.errors = self.output - expected
         self.delta = [diff * self.activation_deriv(output) for diff, output in zip(self.errors, self.output)]
         return
