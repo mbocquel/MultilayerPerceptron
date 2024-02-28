@@ -21,19 +21,19 @@ class DenseLayer(ABC):
     weights_initializer:str, the method used for weights initialisation
     """
     def __init__(self, nb_Node:int, activation = "relu", W = None, b = None,
-                 layerName = None, weights_initializer = 'heUniform') -> None:
+                 layerName = None, weights_initializer = 'heUniform', input_shape = None) -> None:
         """My Dense Layer constructor"""
         super().__init__()
         self.nb_Node = nb_Node
         self.layerName = layerName
-        self.input_shape = nb_Node
-        self.input_layer = False
+        self.input_shape = input_shape
         self.setActivation(activation)
         self.setWeightInit(weights_initializer)
+        self.W = np.array([])
         if W is not None:
             self.input_shape = len(W)
             self.W = W
-        else:
+        elif input_shape is not None:
             self.W = self.weights_initializer(self.input_shape, nb_Node)
         if b is not None:
             self.b = b
@@ -42,6 +42,11 @@ class DenseLayer(ABC):
         self.errors = list()
         self.delta = list()
         return
+    
+    def setInputShape(self, input_shape):
+        self.input_shape = input_shape
+        if self.input_shape != len(self.W):
+            self.W = self.weights_initializer(self.input_shape, self.nb_Node)
         
     def forward(self, a_in):
         self.input = a_in
@@ -53,13 +58,13 @@ class DenseLayer(ABC):
         expected = np.zeros((len(y),self.nb_Node))
         for i in range(len(y)):
             expected[i][int(y[i])] = 1
-        self.errors = self.output - expected
-        self.delta = [diff * self.activation_deriv(output) for diff, output in zip(self.errors, self.output)]
+        self.errors = np.array(self.output - expected)
+        self.delta = np.array([diff * self.activation_deriv(output) for diff, output in zip(self.errors, self.output)])
         return
     
     # A faire pour les couches du milieu
     def setError(self, nextLayer):
-        self.errors = nextLayer.delta @ self.W
+        self.errors = nextLayer.delta @ nextLayer.W.T
         outDerivative = [self.activation_deriv(output) for output in self.output]
         self.delta = self.errors * outDerivative
         return
@@ -107,23 +112,16 @@ class DenseLayer(ABC):
             case _:
                 raise ValueError("Unknowed weights_initializer function")
             
-    def setAsInputLayer(self):
-        self.input_layer = True
-        self.W = np.diag(np.ones(self.input_shape))
-        return
-
-    def setInputShape(self, input_shape):
-        self.input_shape = input_shape
-        # Uniquement si changement de la taille de W besoin de le redefinir
-        if self.input_shape != len(self.W):
-            self.W = self.weights_initializer(self.input_shape, self.nb_Node)
+    # def setAsInputLayer(self):
+    #     self.input_layer = True
+    #     self.W = np.diag(np.ones(self.input_shape))
+    #     return
 
     def setLayerName(self, name):
         self.layerName = name
 
     def summary(self, full=False) -> None:
         print("Layer Name:",self.layerName)
-        print("Input Layer :", self.input_layer)
         print("Shape W:", self.W.shape)
         if (full):
             print("W:", self.W)

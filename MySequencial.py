@@ -2,6 +2,9 @@ from abc import ABC
 import numpy as np
 from LossFunctions import setLossFunction
 from DenseLayer import DenseLayer
+import pickle
+import matplotlib.pyplot as plt
+
 
 class MySequencial(ABC):
     """Class for the Model"""
@@ -9,6 +12,10 @@ class MySequencial(ABC):
         """My Model constructor"""
         super().__init__()
         self.layers = []
+        self.lossTrain = []
+        self.lossVal = []
+        self.accTrain = []
+        self.accVal = []
         prev_out_size = 0
         for i in range(len(layers)):
             layer = layers[i]
@@ -16,10 +23,9 @@ class MySequencial(ABC):
                 raise ValueError("MySequencial needs DenseLayer as argument")
             # Input Layer: 
             name = f"Dense {i+1}"
-            if i == 0:
-                layer.setAsInputLayer()
-                name = name + " (input)"
-            else:
+            if i == 0 and layer.input_shape is None:
+                raise ValueError("The first layer in MySequencial needs to have an inputshape")
+            elif i != 0:
                 layer.setInputShape(prev_out_size)
             if layer.layerName is None :
                 layer.setLayerName(name)
@@ -45,11 +51,11 @@ class MySequencial(ABC):
         self.layers[-1].setErrorLastLayer(y_batch)
         previousLayer = self.layers[-1]
         # Set Error for Hidden layers
-        for i in reversed(range(1, len(self.layers)-1)):
+        for i in reversed(range(0, len(self.layers)-1)):
             self.layers[i].setError(previousLayer)
             previousLayer = self.layers[i]
         # Update the weight
-        for layer in self.layers[1:]:
+        for layer in self.layers[0:]:
             saveW = []
             saveBias = []
             for input, delta in zip(layer.input, layer.delta):
@@ -87,18 +93,53 @@ class MySequencial(ABC):
             for X_batch, y_batch in zip(X_batchs, y_batchs):
                 num_batch += 1
                 self.back_propag(X_batch, y_batch, alpha)   
-                trainloss = lossFunction(self, X_train, y_train)
-                print(f"epoch {epoch} : {num_batch}/{nb_batch} - accuracy: {self.accuracy(X_train, y_train)}, ", end='')
-                print(f"loss:{trainloss}\r", end='', flush=True)
+                trainLoss = lossFunction(self, X_train, y_train)
+                trainAcc = self.accuracy(X_train, y_train)
+                print(f"epoch {epoch} : {num_batch}/{nb_batch} - accuracy: {trainAcc}%, ", end='')
+                print(f"loss:{round(trainLoss, 3)}\r", end='')
             valLoss = lossFunction(self, X_val, y_val)
-            print(f"epoch {epoch} : {nb_batch}/{nb_batch} - accuracy: {self.accuracy(X_train, y_train)}, ", end='')
-            print(f"loss:{trainloss}, val accuracy: {self.accuracy(X_val, y_val)}, ", end='', flush=True)
-            print(f"val loss: {valLoss}")
-            self.lossTrain.append(trainloss)
+            valAcc = self.accuracy(X_val, y_val)
+            print(f"epoch {epoch} : {nb_batch}/{nb_batch} - accuracy: {trainAcc}%, ", end='')
+            print(f"loss: {round(trainLoss, 3)}, val_accuracy: {valAcc}%, ", end='')
+            print(f"val_loss: {round(valLoss, 3)}")
+            self.lossTrain.append(trainLoss)
             self.lossVal.append(valLoss)
+            self.accTrain.append(trainAcc)
+            self.accVal.append(valAcc)
         return
     
     def accuracy(self, X, Y):
         y_prediction = np.argmax(self.predict(X), axis=1)
         correct_predictions = np.sum(Y == y_prediction)
-        return correct_predictions / len(Y)
+        return round((correct_predictions / len(Y)) * 100, 2)
+    
+    def save(self, save_name):
+        with open(save_name, 'wb') as f:
+            pickle.dump(self, f)
+        print("Model savec in", save_name)
+        return
+    
+    def printLearningCurve(self):
+        if len(self.lossTrain) == 0 or len(self.lossVal) == 0:
+            return
+        nb_epoch = len(self.lossVal)
+        x = range(nb_epoch)
+        plt.figure(figsize=(13, 7))
+        plt.subplot(1, 2, 1)
+        plt.plot(x, self.lossVal, "b", label = "Validation Set")
+        plt.plot(x, self.lossTrain, "r", label = "Trainning Set")
+        plt.xlabel("epoch")
+        plt.ylabel("Loss")
+        plt.legend()
+        plt.title("Evolution of the loss")
+
+        plt.subplot(1, 2, 2)
+        plt.plot(x, self.accVal, "b", label = "Validation Set")
+        plt.plot(x, self.accTrain, "r", label = "Trainning Set")
+        plt.xlabel("epoch")
+        plt.ylabel("Accuracy")
+        plt.legend()
+        plt.title("Evolution of the accuracy")
+
+        plt.show()
+
