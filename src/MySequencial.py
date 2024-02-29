@@ -85,10 +85,15 @@ class MySequencial(ABC):
             layer.b = sum(saveBias) / len(saveBias)
 
     
-    def fit(self, data_train, data_valid, loss="binaryCrossentropy",
-            alpha=0.0314, batch_size=8, epochs=15):
-        assert batch_size > 0, "batch_size need to be > 0"
-
+    def fit(self, data_train, data_valid, loss, alpha, batch_size, epochs):
+        if loss is None:
+            loss = "binaryCrossentropy"
+        if alpha is None:
+            alpha = 0.0314
+        if batch_size is None:
+            batch_size = 8
+        if epochs is None:
+            epochs = 150
         lossFunction = setLossFunction(loss)
         data_train_normalised = self.normaliseData(data_train, training = True)
         data_valid_normalised = self.normaliseData(data_valid, training = False)
@@ -116,7 +121,7 @@ class MySequencial(ABC):
                 trainAcc = self.accuracy(X_train, y_train)
             valLoss = lossFunction(self, X_val, y_val)
             valAcc = self.accuracy(X_val, y_val)
-            print(f"epoch {epoch} : accuracy: {trainAcc}%, ", end='')
+            print(f"epoch {epoch+1}/{epochs} : accuracy: {trainAcc}%, ", end='')
             print(f"loss: {round(trainLoss, 3)}, val_accuracy: {valAcc}%, ", end='')
             print(f"val_loss: {round(valLoss, 3)}")
             self.lossTrain.append(trainLoss)
@@ -133,7 +138,7 @@ class MySequencial(ABC):
     def save(self, save_name):
         with open(save_name, 'wb') as f:
             pickle.dump(self, f)
-        print("Model savec in", save_name)
+        print("\nModel savec in", save_name, "\n")
         return
     
     def printLearningCurve(self):
@@ -144,7 +149,7 @@ class MySequencial(ABC):
         plt.figure(figsize=(13, 7))
         plt.subplot(1, 2, 1)
         plt.plot(x, self.lossVal, "b", label = "Validation Set")
-        plt.plot(x, self.lossTrain, "r", label = "Trainning Set")
+        plt.plot(x, self.lossTrain, "r", label = "Training Set")
         plt.xlabel("epoch")
         plt.ylabel("Loss")
         plt.legend()
@@ -152,7 +157,7 @@ class MySequencial(ABC):
 
         plt.subplot(1, 2, 2)
         plt.plot(x, self.accVal, "b", label = "Validation Set")
-        plt.plot(x, self.accTrain, "r", label = "Trainning Set")
+        plt.plot(x, self.accTrain, "r", label = "Training Set")
         plt.xlabel("epoch")
         plt.ylabel("Accuracy")
         plt.legend()

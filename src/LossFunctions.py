@@ -1,5 +1,12 @@
 import numpy as np
 
+def isLossFunction(str):
+    if str in ["binaryCrossentropyLoss", 
+               "sparseCategoricalCrossEntropyLoss"]:
+        return True
+    return False
+
+
 def binaryCrossentropyLoss(model, x, y):
     epsilon = 1e-15 # Evite les erreurs de division par zéro
     f_tab = model.predict(x)

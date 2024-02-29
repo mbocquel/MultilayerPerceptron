@@ -1,6 +1,21 @@
 import numpy as np
 
 
+def isWeightInitialiser(str):
+    if str in ["constantWI",
+               "constantZerosWI",
+               "constantOnesWI",
+               "uniformWI",
+               "normalWI",
+               "leCunUniformWI",
+               "leCunNormalWI",
+               "xavierUniformWI",
+               "xavierNormalWI",
+               "heUniformWI",
+               "heNormalWI"]:
+        return True
+    return False
+
 def constantWI(input_units, output_units, value=1):
     return np.ones(input_units, output_units) * value
 

@@ -3,11 +3,11 @@ import numpy as np
 from typing import Any
 from ActivationFunctions import sigmoid, softmax, linear, relu
 from ActivationFunctions import sigmoid_deriv, relu_deriv, linear_deriv, softmax_deriv
-from WeightInitialisator import constantOnesWI, constantZerosWI
-from WeightInitialisator import uniformWI, normalWI
-from WeightInitialisator import leCunNormalWI, leCunUniformWI
-from WeightInitialisator import xavierNormalWI, xavierUniformWI
-from WeightInitialisator import heNormalWI, heUniformWI
+from WeightInitialiser import constantOnesWI, constantZerosWI
+from WeightInitialiser import uniformWI, normalWI
+from WeightInitialiser import leCunNormalWI, leCunUniformWI
+from WeightInitialiser import xavierNormalWI, xavierUniformWI
+from WeightInitialiser import heNormalWI, heUniformWI
 
 
 class DenseLayer(ABC):

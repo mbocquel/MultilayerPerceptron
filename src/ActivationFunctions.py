@@ -1,6 +1,12 @@
 import numpy as np
 
 
+def isActivationFunction(str):
+    if str in ["sigmoid", "relu", "linear", "softmax"]:
+        return True
+    return False
+
+
 def sigmoid(z):
     return 1 / (1 + np.exp(-z))
 
