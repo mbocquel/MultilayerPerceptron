@@ -4,6 +4,7 @@ from LossFunctions import setLossFunction
 from DenseLayer import DenseLayer
 import pickle
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 class MySequencial(ABC):
@@ -17,6 +18,8 @@ class MySequencial(ABC):
         self.accTrain = []
         self.accVal = []
         prev_out_size = 0
+        self.trainMean = None
+        self.trainStdDev = None
         for i in range(len(layers)):
             layer = layers[i]
             if not isinstance(layer, DenseLayer):
@@ -31,6 +34,17 @@ class MySequencial(ABC):
                 layer.setLayerName(name)
             prev_out_size = layer.nb_Node
             self.layers.append(layer)
+    
+    def normaliseData(self, data, training = True):
+        df = pd.DataFrame(data)
+        if training is True:
+            # print(df.describe)
+            self.trainMean = df.describe().loc["mean",:len(df.columns)-2].to_numpy()
+            self.trainStdDev = df.describe().loc["std",:len(df.columns)-2].to_numpy()
+        if self.trainStdDev is None:
+            raise ValueError("The model needs to be trained before used for predicting")
+        data[:, :-1] = (data[:, :-1] - self.trainMean) / self.trainStdDev
+        return data
     
     def summary(self, full=False) -> None:
         for i in range(len(self.layers)):
@@ -73,17 +87,22 @@ class MySequencial(ABC):
     
     def fit(self, data_train, data_valid, loss="binaryCrossentropy",
             alpha=0.0314, batch_size=8, epochs=15):
+        assert batch_size > 0, "batch_size need to be > 0"
+
         lossFunction = setLossFunction(loss)
+        data_train_normalised = self.normaliseData(data_train, training = True)
+        data_valid_normalised = self.normaliseData(data_valid, training = False)
         self.lossTrain = []
         self.lossVal = []
-        X_val = data_valid[:, :-1]
+        X_val = data_valid_normalised[:, :-1]
         y_val = data_valid[:, -1]
-        assert batch_size > 0, "batch_size need to be > 0"
-        nb_batch = int(len(data_train) / batch_size)  + 1
-        if len(data_train) % batch_size == 0:
+        nb_batch = int(len(data_train_normalised) / batch_size)  + 1
+
+        if len(data_train_normalised) % batch_size == 0:
             nb_batch = nb_batch - 1
+
         for epoch in range(epochs):
-            data = data_train.copy()
+            data = data_train_normalised.copy()
             np.random.shuffle(data)
             X_train = data[:, :-1]
             y_train = data[:, -1]
@@ -95,11 +114,9 @@ class MySequencial(ABC):
                 self.back_propag(X_batch, y_batch, alpha)   
                 trainLoss = lossFunction(self, X_train, y_train)
                 trainAcc = self.accuracy(X_train, y_train)
-                print(f"epoch {epoch} : {num_batch}/{nb_batch} - accuracy: {trainAcc}%, ", end='')
-                print(f"loss:{round(trainLoss, 3)}\r", end='')
             valLoss = lossFunction(self, X_val, y_val)
             valAcc = self.accuracy(X_val, y_val)
-            print(f"epoch {epoch} : {nb_batch}/{nb_batch} - accuracy: {trainAcc}%, ", end='')
+            print(f"epoch {epoch} : accuracy: {trainAcc}%, ", end='')
             print(f"loss: {round(trainLoss, 3)}, val_accuracy: {valAcc}%, ", end='')
             print(f"val_loss: {round(valLoss, 3)}")
             self.lossTrain.append(trainLoss)

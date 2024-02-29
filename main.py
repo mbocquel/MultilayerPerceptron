@@ -37,15 +37,23 @@ def main(**kwargs):
         assert os.path.isfile(path), "Please enter a file as a parametter"
         
         df = pd.read_csv(path, header=None)
-        df.iloc[:,-1] -= 1
+        df[len(df.columns)] = 0.0
+        df.loc[df.iloc[:,1] == 'M', len(df.columns) - 1 ] = 1
+        df.drop([0, 1], axis=1, inplace=True)
+        df.columns = range(len(df.columns))
         data = df.to_numpy()
         np.random.shuffle(data)
         np.random.seed(1)
         data_train = data[:int(len(data) * train_portion),:]
         data_val = data[int(len(data) * train_portion):,:]
+        X_train = data_train[:, :-1]
+        X_val = data_val[:, :-1]
+        nb_example, nb_features = X_train.shape
+        print("x_train shape :", X_train.shape)
+        print("x_valid shape :", X_val.shape)
 
         myModel = MySequencial([
-            DenseLayer(8, activation='sigmoid', input_shape=7),
+            DenseLayer(8, activation='sigmoid', input_shape=nb_features),
             DenseLayer(8, activation='sigmoid'),
             DenseLayer(3, activation='softmax')
         ])
