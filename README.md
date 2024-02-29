@@ -28,7 +28,7 @@
 **params :** 
 - --steps -s [int]
 - --dataset -ds str
-- --valPart -v flloat
+- --valPart -v float
 - --layer -la [int et str]
 - --loss -lo str
 - --learningRate -lr float
