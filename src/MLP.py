@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from MySequencial import MySequencial
 from DenseLayer import DenseLayer
@@ -23,6 +22,7 @@ class MPLArgs(ABC):
         self.valPart = None
         self.layerRaw = None
         self.layer = None
+        self.resetTraining = None
         self.loss = None
         self.learningRate = None
         self.batchSize = None
@@ -42,6 +42,8 @@ class MPLArgs(ABC):
                         self.valPart = value
                     case 'layer':
                         self.layerRaw = value
+                    case 'resetTraining':
+                        self.resetTraining = value
                     case 'loss':
                         self.loss = value
                     case 'learningRate':
@@ -53,7 +55,7 @@ class MPLArgs(ABC):
                     case 'dataToPredict':
                         self.dataToPredict = value
         self.checkInputs()
-    
+
     def checkSteps(self):
         assert self.steps is not None, "You need to provide the steps of the program to execute !"
         self.steps = np.sort(list(set(self.steps)))
@@ -69,19 +71,21 @@ class MPLArgs(ABC):
         assert (1 in self.steps or 
                 (os.path.isfile("data_train.csv") and os.path.isfile("data_val.csv"))
             ),"Step 2 - data_train.csv and or data_val.csv missing from the current directory"
-        assert self.layerRaw is not None, "Step 2 - Layer argument is missing"
+        if self.layerRaw is None and (self.resetTraining or not os.path.isfile("saved_model.pkl")):
+            raise AssertionError("Step 2 - Missing layer argument of model file")
         layers = []
-        for element in self.layerRaw:
-            try:
-                nb_Node = int(element)
-                layers.append([nb_Node, "", ""])
-            except ValueError:
-                if len(layers) and isActivationFunction(element):
-                    layers[-1][1] = element
-                elif len(layers) and isWeightInitialiser(element):
-                    layers[-1][2] = element
-                else:
-                    raise AssertionError("Step 2 - Invalid format for Layer argument")
+        if (self.layerRaw):
+            for element in self.layerRaw:
+                try:
+                    nb_Node = int(element)
+                    layers.append([nb_Node, "", ""])
+                except ValueError:
+                    if len(layers) and isActivationFunction(element):
+                        layers[-1][1] = element
+                    elif len(layers) and isWeightInitialiser(element):
+                        layers[-1][2] = element
+                    else:
+                        raise AssertionError("Step 2 - Invalid format for Layer argument")
         self.layer = layers
         assert self.loss is None or isLossFunction(self.loss), "Step 2 - Problem with the loss function"
         assert self.learningRate is None or self.learningRate > 0, "Step 2 - Problem with the learning rate"
@@ -107,16 +111,16 @@ class MPLArgs(ABC):
             self.checkStep3()
 
     def summary(self):
-        print("steps",self.steps)
-        print("dataset",self.dataset)
-        print("valPart",self.valPart)
-        print("layerRaw",self.layerRaw)
-        print("layer",self.layer)
-        print("loss",self.loss)
-        print("learningRate",self.learningRate)
-        print("batchSize",self.batchSize)
-        print("epochs",self.epochs)
-        print("dataToPredict",self.dataToPredict)
+        print("steps:",self.steps)
+        print("dataset:",self.dataset)
+        print("valPart:",self.valPart)
+        print("layerRaw:",self.layerRaw)
+        print("layer:",self.layer)
+        print("loss:",self.loss)
+        print("learningRate:",self.learningRate)
+        print("batchSize:",self.batchSize)
+        print("epochs:",self.epochs)
+        print("dataToPredict:",self.dataToPredict)
 
 
 def splitDataSet(mlp):
@@ -150,31 +154,37 @@ def trainModel(mlp):
         mlp.data_val = pd.read_csv("data_val.csv", header=None).to_numpy()
     X_train = mlp.data_train[:, :-1]
     nb_example, nb_features = X_train.shape
-
-    modelLayers = []
-    for i in range(len(mlp.layer)):
-        input_shape = None
-        if i == 0:
-            input_shape = nb_features
-        if (len(mlp.layer[i][1]) and len(mlp.layer[i][2])):
-            modelLayers.append(
-                DenseLayer(mlp.layer[i][0], input_shape=input_shape,
-                           activation=mlp.layer[i][1],
-                           weights_initializer=mlp.layer[i][2]))
-        elif (len(mlp.layer[i][1])):
-            modelLayers.append(
-                DenseLayer(mlp.layer[i][0], input_shape=input_shape,
-                           activation=mlp.layer[i][1]))
-        elif (len(mlp.layer[i][2])):
-            modelLayers.append(
-                DenseLayer(mlp.layer[i][0], input_shape=input_shape,
-                           weights_initializer=mlp.layer[i][2]))
-        else:
-            modelLayers.append(
-                DenseLayer(mlp.layer[i][0], input_shape=input_shape))
-    mlp.myModel = MySequencial(modelLayers)
+    if not os.path.isfile("saved_model.pkl") or mlp.resetTraining:
+        modelLayers = []
+        for i in range(len(mlp.layer)):
+            input_shape = None
+            if i == 0:
+                input_shape = nb_features
+            if (len(mlp.layer[i][1]) and len(mlp.layer[i][2])):
+                modelLayers.append(
+                    DenseLayer(mlp.layer[i][0], input_shape=input_shape,
+                            activation=mlp.layer[i][1],
+                            weights_initializer=mlp.layer[i][2]))
+            elif (len(mlp.layer[i][1])):
+                modelLayers.append(
+                    DenseLayer(mlp.layer[i][0], input_shape=input_shape,
+                            activation=mlp.layer[i][1]))
+            elif (len(mlp.layer[i][2])):
+                modelLayers.append(
+                    DenseLayer(mlp.layer[i][0], input_shape=input_shape,
+                            weights_initializer=mlp.layer[i][2]))
+            else:
+                modelLayers.append(
+                    DenseLayer(mlp.layer[i][0], input_shape=input_shape))
+        print("Creating new Neural Network:")
+        mlp.myModel = MySequencial(modelLayers)
+        mlp.myModel.summary()
+    else:
+        with open("saved_model.pkl", 'rb') as f:
+            mlp.myModel = pickle.load(f)
+        print("Model loaded:")
+        mlp.myModel.summary()
     mlp.myModel.fit(mlp.data_train, mlp.data_val, batch_size=mlp.batchSize, epochs=mlp.epochs, loss=mlp.loss, alpha=mlp.learningRate )
-    mlp.myModel.printLearningCurve()
     mlp.myModel.save("saved_model.pkl")
 
 
@@ -219,6 +229,7 @@ def main(**kwargs):
             splitDataSet(mlp)
         if 2 in mlp.steps:
             trainModel(mlp)
+            mlp.myModel.printLastLearningCurve()
         if 3 in mlp.steps:
             predict(mlp)
 
@@ -249,6 +260,9 @@ if __name__ == "__main__":
                         help="Number of epochs")
     parser.add_argument("--dataToPredict", "-dtp", type=str,
                         help="Path to the dataset to predict")
+    parser.add_argument("--resetTraining", "-r", action="store_true",
+                        help="Reset the learning")
+
     args = parser.parse_args()
     kwargs = {key: getattr(args, key) for key in vars(args)}
     main(**kwargs)

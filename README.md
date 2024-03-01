@@ -2,7 +2,6 @@
 
 ## Parametres necessaire pour le program : 
 
-
 - **Step 1 est present :**
     - *OBLIGATOIRE :* 
         - dataset
@@ -18,6 +17,7 @@
         - learning_rate
         - batch_size
         - epochs
+        - r
 
 - **Step 3 est present :** 
     - *OBLIGATOIRE :* 
@@ -30,9 +30,26 @@
 - --dataset -ds str
 - --valPart -v float
 - --layer -la [int et str]
+- --resetTraining -r Present ou pas. 
 - --loss -lo str
 - --learningRate -lr float
 - --batchSize -bs int 
 - --epochs -e int 
 - --dataToPredict -dtp str
 
+# To do
+- Tester le programme avec differentes architecture du reseau de neurone. 
+- Tester avec differents taux d'apprentissages. 
+
+
+# Possibles bonus : 
+- A more complex optimization function (for example : nesterov momentum, RMSprop, Adam, ...).
+- A display of multiple learning curves on the same graph (really useful to compare different models). ==> il faudrait avoir les differntes architectures. 
+    - Interessant a avoir a partir du moment ou j'ai enregistrer les trucs. 
+    => done
+- An historic of the metric obtained during training.
+    - Il faut que a chaque fois que je lance un fit, j'enregistre les parametre de la simulation (alpha, batch size etc) ainsi que Trainning Loss et Accuracy et ValLoss et Accuracy. 
+    => done
+- The implementation of early stopping. ==> Permet de resoudre l'overfitting
+    - Toutes les 5 epochs, j'enregistre ValLoss et je compare ValLoss[epoch] et ValLoss[epoch - 5]. si ValLoss a augmenter je reviens aux valeurs W et b de la derniere fois.
+- Evaluate the learning phase with multiple metrics.

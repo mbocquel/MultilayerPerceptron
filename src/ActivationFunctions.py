@@ -26,11 +26,11 @@ def softmax(z):
 
 def sigmoid_deriv(z):
     return z * (1.0 - z)
-     
+
 
 def relu_deriv(z):
     return np.where(z >= 0, 1, 0)
-    
+
 
 def linear_deriv(z):
     return 1

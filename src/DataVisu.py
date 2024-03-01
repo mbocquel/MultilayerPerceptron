@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import argparse
 import traceback
@@ -29,8 +28,10 @@ def printHistogram(benin_set, malin_set):
     plt.figure(figsize=(15, 15))
     for i in range(len(col_names)):
         plt.subplot(nb_lignes_graph, nb_col_graph, i + 1)
-        plt.hist(benin_set.loc[:,col_names[i]], alpha = 0.5, lw=3, label="benin", color="g")
-        plt.hist(malin_set.loc[:,col_names[i]], alpha = 0.5, lw=3, label="malin", color="r")
+        plt.hist(benin_set.loc[:, col_names[i]], alpha=0.5,
+                 lw=3, label="benin", color="g")
+        plt.hist(malin_set.loc[:, col_names[i]], alpha=0.5,
+                 lw=3, label="malin", color="r")
         plt.legend()
     plt.subplots_adjust(wspace=0.4, hspace=0.4)
     manager = plt.get_current_fig_manager()
@@ -46,17 +47,22 @@ def testParamsAreOk(value, col_names):
         return (result - 1)
     except Exception:
         return (None)
-    
+
+
 def printScatter(idFeature, benin_set, malin_set, col_names, nb_col_graph):
-    print(f"     \033[32mShowing you the scatter plot for feature {idFeature + 1}\033[0m")
-    nb_lignes_graph = int((len(col_names)- 1)/nb_col_graph) + 1
+    print(f"\033[32mScatter plot for feature {idFeature + 1}\033[0m")
+    nb_lignes_graph = int((len(col_names) - 1)/nb_col_graph) + 1
     plt.figure(figsize=(nb_col_graph * 10, nb_lignes_graph * 10))
     j = 0
     for i in range(len(col_names)):
         if (i != idFeature):
             plt.subplot(nb_lignes_graph, nb_col_graph, j + 1)
-            plt.plot(benin_set.iloc[:,idFeature], benin_set.iloc[:,col_names[i]], 'o',  label="benin", color="g")
-            plt.plot(malin_set.iloc[:,idFeature], malin_set.iloc[:,col_names[i]], 'o',  label="malin", color="r")
+            plt.plot(benin_set.iloc[:, idFeature],
+                     benin_set.iloc[:, col_names[i]],
+                     'o',  label="benin", color="g")
+            plt.plot(malin_set.iloc[:, idFeature],
+                     malin_set.iloc[:, col_names[i]],
+                     'o',  label="malin", color="r")
             plt.ylabel(str(col_names[i]))
             plt.legend()
             j += 1
@@ -69,7 +75,8 @@ def printScatter(idFeature, benin_set, malin_set, col_names, nb_col_graph):
 def scatterPlot(benin_set, malin_set):
     nb_col_graph = 5
     col_names = benin_set.columns
-    userMainFeature = testParamsAreOk(input("Please enter the number of the feature to compare, or 0 to quit: "), col_names)
+    userMainFeature = testParamsAreOk(
+        input("Enter the number of the feature (0 to quit):"), col_names)
     plt.rcParams.update({'font.size': 8})
     while (1):
         if (userMainFeature is None):
@@ -77,8 +84,10 @@ def scatterPlot(benin_set, malin_set):
         elif (userMainFeature == -1):
             return 0
         else:
-            printScatter(userMainFeature, benin_set, malin_set, col_names, nb_col_graph)
-        userMainFeature = testParamsAreOk(input("Please enter the number of the feature to compare, or 0 to quit: "), col_names)
+            printScatter(userMainFeature, benin_set,
+                         malin_set, col_names, nb_col_graph)
+        userMainFeature = testParamsAreOk(
+            input("Enter the number of the feature (0 to quit):"), col_names)
 
 
 def main(**kwargs):
@@ -86,21 +95,19 @@ def main(**kwargs):
         path, histogram, scatter = processArgs(**kwargs)
         assert path is not None, "Please enter a file path as parametter"
         assert os.path.isfile(path), "Please enter a file as a parametter"
-        
+
         df = pd.read_csv(path, header=None)
         df[len(df.columns)] = 0.0
-        df.loc[df.iloc[:,1] == 'M', len(df.columns) - 1 ] = 1
+        df.loc[df.iloc[:, 1] == 'M', len(df.columns) - 1] = 1
         df.drop([0, 1], axis=1, inplace=True)
         df.columns = range(len(df.columns))
-        benin_set = df.loc[df.iloc[:,-1] == 0, 0:(len(df.columns)-2)]
-        malin_set = df.loc[df.iloc[:,-1] == 1, 0:(len(df.columns)-2)]
+        benin_set = df.loc[df.iloc[:, -1] == 0, 0:(len(df.columns) - 2)]
+        malin_set = df.loc[df.iloc[:, -1] == 1, 0:(len(df.columns) - 2)]
 
         if histogram:
             printHistogram(benin_set, malin_set)
         if scatter:
             scatterPlot(benin_set, malin_set)
-            
-
         return 0
     except Exception as err:
         print(f"Error: {err}\n")
@@ -117,7 +124,6 @@ if __name__ == "__main__":
                         help="show pair plot")
     parser.add_argument("--path", "-p", type=str,
                         help="Path to the dataset directory")
-    
     args = parser.parse_args()
     kwargs = {key: getattr(args, key) for key in vars(args)}
     main(**kwargs)
