@@ -21,7 +21,7 @@ class DenseLayer(ABC):
     layername: str, a name so it's easier to organise the neural network
     weights_initializer:str, the method used for weights initialisation
     """
-    def __init__(self, nb_Node: int, activation="relu", W=None, b=None,
+    def __init__(self, nb_Node: int, activation="sigmoid", W=None, b=None,
                  layerName=None, weights_initializer='heUniform',
                  input_shape=None) -> None:
         """My Dense Layer constructor"""

@@ -5,6 +5,7 @@ from DenseLayer import DenseLayer
 import pickle
 import matplotlib.pyplot as plt
 import pandas as pd
+import copy 
 
 
 class MySequencial(ABC):
@@ -44,8 +45,9 @@ class MySequencial(ABC):
             self.trainStdDev = df.describe().loc["std",:len(df.columns)-2].to_numpy()
         if self.trainStdDev is None:
             raise ValueError("The model needs to be trained before used for predicting")
-        data[:, :-1] = (data[:, :-1] - self.trainMean) / self.trainStdDev
-        return data
+        newdata = copy.deepcopy(data)
+        newdata[:, :-1] = (data[:, :-1] - self.trainMean) / self.trainStdDev
+        return newdata
     
     def getSequentialArchitecture(self):
         text = ""
@@ -86,7 +88,7 @@ class MySequencial(ABC):
             saveW = []
             saveBias = []
             for input, delta in zip(layer.input, layer.delta):
-                W = layer.W.copy()
+                W = copy.deepcopy(layer.W)
                 bias = layer.b
                 for numNode in range(layer.nb_Node):
                     for numFeature in range(len(input)):
@@ -98,7 +100,8 @@ class MySequencial(ABC):
             layer.b = sum(saveBias) / len(saveBias)
 
     
-    def fit(self, data_train, data_valid, loss, alpha, batch_size, epochs):
+    def fit(self, data_train, data_valid, loss, alpha,
+            batch_size, epochs, earlyStop, precisionRecall):
         if loss is None:
             loss = "binaryCrossentropy"
         if alpha is None:
@@ -107,6 +110,7 @@ class MySequencial(ABC):
             batch_size = 8
         if epochs is None:
             epochs = 150
+        savedModel = []
         # On enregistre ce nouveau train.
         fit_save = {}
         fit_save['loss'] = loss
@@ -117,6 +121,10 @@ class MySequencial(ABC):
         fit_save['valAcc'] = []
         fit_save['trainLoss'] = []
         fit_save['trainAcc'] = []
+        fit_save['precisionTrain'] = []
+        fit_save['precisionVal'] = []
+        fit_save['recallTrain'] = []
+        fit_save['recallVal'] = []
         self.historyTrain.append(fit_save)
         lossFunction = setLossFunction(loss)
         data_train_normalised = self.normaliseData(data_train, training = True)
@@ -129,33 +137,76 @@ class MySequencial(ABC):
             nb_batch = nb_batch - 1
 
         for epoch in range(epochs):
-            data = data_train_normalised.copy()
+            data = copy.deepcopy(data_train_normalised)
             np.random.shuffle(data)
-            X_train = data[:, :-1]
-            y_train = data[:, -1]
+            X_train = data_train_normalised[:, :-1]
+            y_train = data_train_normalised[:, -1]
             X_batchs = [X_train[i:i+batch_size] for i in range(0, len(X_train), batch_size)]
             y_batchs = [y_train[i:i+batch_size] for i in range(0, len(y_train), batch_size)]
             num_batch = 0
             for X_batch, y_batch in zip(X_batchs, y_batchs):
                 num_batch += 1
                 self.back_propag(X_batch, y_batch, alpha)   
-                trainLoss = lossFunction(self, X_train, y_train)
-                trainAcc = self.accuracy(X_train, y_train)
+            trainLoss = lossFunction(self, X_train, y_train)
+            trainAcc = self.accuracy(X_train, y_train)
             valLoss = lossFunction(self, X_val, y_val)
             valAcc = self.accuracy(X_val, y_val)
             print(f"epoch {epoch+1}/{epochs} : accuracy: {trainAcc}%, ", end='')
-            print(f"loss: {round(trainLoss, 3)}, val_accuracy: {valAcc}%, ", end='')
+            print(f"loss: {round(trainLoss, 3)}, ", end='')
+            if precisionRecall:
+                precisionTrain, recallTrain = self.precisionAndRecall(X_train, y_train)
+                precisionVal, recallVal = self.precisionAndRecall(X_val, y_val)
+                print(f"precision: {precisionTrain}%, ", end='')
+                print(f"recall: {recallTrain}%, ", end='')
+                print(f"val_precision: {precisionVal}%, ", end='')
+                print(f"val_recall: {recallVal}%, ", end='')
+            print(f"val_accuracy: {valAcc}%, ", end='')
             print(f"val_loss: {round(valLoss, 3)}")
+
+            if earlyStop: 
+                if len(self.historyTrain[-1]['valLoss']) >= 5 and self.historyTrain[-1]['valLoss'][-5] <= valLoss:
+                    print("Model is doing worse on the validation set. Early stoping the training")
+                    self.layers = savedModel[-5]
+                    del(self.historyTrain[-1]['valLoss'][-4:])
+                    del(self.historyTrain[-1]['valAcc'][-4:])
+                    del(self.historyTrain[-1]['trainLoss'][-4:])
+                    del(self.historyTrain[-1]['trainAcc'][-4:])
+                    del(self.historyTrain[-1]['precisionTrain'][-4:])
+                    del(self.historyTrain[-1]['precisionVal'][-4:])
+                    del(self.historyTrain[-1]['recallTrain'][-4:])
+                    del(self.historyTrain[-1]['recallVal'][-4:])
+                    return
+                savedModel.append(copy.deepcopy(self.layers))
+                del(savedModel[:-5])
+            
             self.historyTrain[-1]['valLoss'].append(valLoss)
             self.historyTrain[-1]['valAcc'].append(valAcc)
             self.historyTrain[-1]['trainLoss'].append(trainLoss)
             self.historyTrain[-1]['trainAcc'].append(trainAcc)
+            if precisionRecall:
+                self.historyTrain[-1]['precisionTrain'].append(precisionTrain)
+                self.historyTrain[-1]['precisionVal'].append(precisionVal)
+                self.historyTrain[-1]['recallTrain'].append(recallTrain)
+                self.historyTrain[-1]['recallVal'].append(recallVal)
         return
 
     def accuracy(self, X, Y):
         y_prediction = np.argmax(self.predict(X), axis=1)
         correct_predictions = np.sum(Y == y_prediction)
         return round((correct_predictions / len(Y)) * 100, 2)
+    
+    def precisionAndRecall(self, X, y_val):
+        y_prediction = np.argmax(self.predict(X), axis=1)
+        truePos = np.sum((y_prediction == 1) & (y_val == 1))
+        falsePos = np.sum((y_prediction == 1) & (y_val == 0))
+        falseNeg = np.sum((y_prediction == 0) & (y_val == 1))
+        precision = 0
+        recall = 0
+        if (truePos + falsePos) != 0:
+            precision = round((truePos / (truePos + falsePos)) * 100, 2)
+        if (truePos + falseNeg) != 0:
+            recall = round((truePos / (truePos + falseNeg)) * 100, 2)
+        return precision, recall
 
     def save(self, save_name):
         with open(save_name, 'wb') as f:

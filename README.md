@@ -52,4 +52,10 @@
     => done
 - The implementation of early stopping. ==> Permet de resoudre l'overfitting
     - Toutes les 5 epochs, j'enregistre ValLoss et je compare ValLoss[epoch] et ValLoss[epoch - 5]. si ValLoss a augmenter je reviens aux valeurs W et b de la derniere fois.
+    => done
 - Evaluate the learning phase with multiple metrics.
+    => Done Precision et recall
+
+# Lancement du programme 
+
+```python src/MLP.py --steps 1 2 3 --dataset data/data.csv --layer 8 8 2 softmax --epochs 200 --resetTraining --valPart 0.5```

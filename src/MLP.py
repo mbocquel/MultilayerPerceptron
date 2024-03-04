@@ -7,7 +7,6 @@ from LossFunctions import isLossFunction
 import pandas as pd
 import argparse
 import os
-import traceback
 from abc import ABC
 import pickle
 
@@ -31,6 +30,8 @@ class MPLArgs(ABC):
         self.data_train = None
         self.data_val = None
         self.myModel = None
+        self.earlyStop = None
+        self.precisionRecall = None
         for key, value in kwargs.items():
             if value is not None:
                 match key:
@@ -54,6 +55,10 @@ class MPLArgs(ABC):
                         self.epochs = value
                     case 'dataToPredict':
                         self.dataToPredict = value
+                    case 'earlyStop':
+                        self.earlyStop = value
+                    case 'precisionRecall':
+                        self.precisionRecall = value
         self.checkInputs()
 
     def checkSteps(self):
@@ -64,7 +69,7 @@ class MPLArgs(ABC):
     
     def checkStep1(self):
         assert (self.dataset is not None and os.path.isfile(self.dataset) 
-                and (self.valPart is None or (self.valPart > 0 and self.valpart < 1))
+                and (self.valPart is None or (self.valPart > 0 and self.valPart < 1))
                 ), "Step 1 - dataset missing or invalid"
     
     def checkStep2(self):
@@ -90,7 +95,7 @@ class MPLArgs(ABC):
         assert self.loss is None or isLossFunction(self.loss), "Step 2 - Problem with the loss function"
         assert self.learningRate is None or self.learningRate > 0, "Step 2 - Problem with the learning rate"
         assert self.batchSize is None or self.batchSize > 1, "Step 2 - Problem with the batch size"
-        assert self.epochs is None or self.epochs > 1, "Step 2 - Problem with the number of epochs" 
+        assert self.epochs is None or self.epochs >=0 , "Step 2 - Problem with the number of epochs" 
 
     def checkStep3(self):
         assert (1 in self.steps or 
@@ -121,6 +126,8 @@ class MPLArgs(ABC):
         print("batchSize:",self.batchSize)
         print("epochs:",self.epochs)
         print("dataToPredict:",self.dataToPredict)
+        print("earlyStop", self.earlyStop)
+        print("precisionRecall", self.precisionRecall)
 
 
 def splitDataSet(mlp):
@@ -184,7 +191,9 @@ def trainModel(mlp):
             mlp.myModel = pickle.load(f)
         print("Model loaded:")
         mlp.myModel.summary()
-    mlp.myModel.fit(mlp.data_train, mlp.data_val, batch_size=mlp.batchSize, epochs=mlp.epochs, loss=mlp.loss, alpha=mlp.learningRate )
+    mlp.myModel.fit(mlp.data_train, mlp.data_val, batch_size=mlp.batchSize, epochs=mlp.epochs,
+                    loss=mlp.loss, alpha=mlp.learningRate, earlyStop=mlp.earlyStop,
+                    precisionRecall=mlp.precisionRecall)
     mlp.myModel.save("saved_model.pkl")
 
 
@@ -196,7 +205,7 @@ def predict(mlp):
         data = pd.read_csv("data_val.csv", header=None).to_numpy()
         data = mlp.myModel.normaliseData(data, False)
     elif mlp.dataToPredict is None:
-        data = mlp.data_val
+        data = mlp.myModel.normaliseData(mlp.data_val, False)
     else :
         data = pd.read_csv(mlp.dataToPredict, header=None).to_numpy()
         data = mlp.myModel.normaliseData(data, False)
@@ -236,7 +245,6 @@ def main(**kwargs):
         return 0
     except Exception as err:
         print(f"Error: {err}")
-        traceback.print_exc()
         return 1
 
 if __name__ == "__main__":
@@ -262,6 +270,10 @@ if __name__ == "__main__":
                         help="Path to the dataset to predict")
     parser.add_argument("--resetTraining", "-r", action="store_true",
                         help="Reset the learning")
+    parser.add_argument("--earlyStop", "-es", action="store_true",
+                        help="Early stop on")
+    parser.add_argument("--precisionRecall", "-pr", action="store_true",
+                        help="Show Precision and Recall")
 
     args = parser.parse_args()
     kwargs = {key: getattr(args, key) for key in vars(args)}
