@@ -1,4 +1,53 @@
 # Multilayer Perceptron project of 42
+42 School love to make their student code from scrach basic things to be sure that we fully understand how they work before we use them.
+
+This project aims to recreate a Neural Network in python using only numpy. I used a class to define a DenseLayer and a class for the Neural Network itself. Both my class are fully modulable and accept different weight initializor functions, loss functions, activation function, number of neurons in a hidden layer, number of hidden layers etc. 
+
+My MLP is then used to create a program that learn form medical data if a tumor is benin or malicious.
+
+## Notions developed in the project
+- Forward propagation
+- Backpropagation
+- Gradient Descent
+- Activation functions
+- Weigth initialisor functions
+- Earlystop
+- BinaryCrossEntropyLoss
+
+The main program MLP.py work in 3 steps:
+- **Step 1: split dataset**
+    - Slip the dataset in two parts (training and validation).
+    - Create data_train.csv and data_val.csv files.
+- **Step 2: Train the neural network**
+    - If a model is already in the directory, it loads it and start the training
+    - Otherwise it initilizes a new Neural Network model and trains it
+- **Step 3: Predict**
+    - Load the model and make a prediction about a tumor. 
+
+## Possible arguments of the MLP.py program
+
+--steps STEPS [STEPS ...], -s STEPS [STEPS ...] Steps to run
+--dataset DATASET, -ds DATASET
+Path to the full dataset (training and validation)
+  --valPart VALPART, -v VALPART
+                        Portion of the data to use for validation
+  --layer LAYER [LAYER ...], -la LAYER [LAYER ...]
+                        Name of the learning saving file
+  --loss LOSS, -lo LOSS
+                        Loss function to use
+  --learningRate LEARNINGRATE, -lr LEARNINGRATE
+                        Learning Rate to use
+  --batchSize BATCHSIZE, -bs BATCHSIZE
+                        Size of the batchs
+  --epochs EPOCHS, -e EPOCHS
+                        Number of epochs
+  --dataToPredict DATATOPREDICT, -dtp DATATOPREDICT
+                        Path to the dataset to predict
+  --resetTraining, -r   Reset the learning
+  --earlyStop, -es      Early stop on
+  --precisionRecall, -pr
+                        Show Precision and Recall
+
 
 ## Parametres necessaire pour le program : 
 
