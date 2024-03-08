@@ -46,4 +46,4 @@ The main program, MLP.py, works in three steps:
 ## Bonus Programs
 To better select parameters for my neural network, I implemented a class MLPComparator.py to plot different training histories and indicators (evolution of the loss function, accuracy, recall, and precision). See ResultVisu.ipynb for more details. 
 
-<img src="img/output.png">
+<img src="img/output.png" height="650px">
