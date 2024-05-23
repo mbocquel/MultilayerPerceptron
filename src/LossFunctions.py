@@ -27,7 +27,7 @@ def sparseCategoricalCrossEntropyLoss(model, x, y):
 
 def setLossFunction(lossFunctionName):
     match lossFunctionName:
-        case "binaryCrossentropy":
+        case "binaryCrossentropyLoss":
             return binaryCrossentropyLoss
         case "sparseCategoricalCrossEntropyLoss":
             return sparseCategoricalCrossEntropyLoss

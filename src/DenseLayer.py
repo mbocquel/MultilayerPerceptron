@@ -1,13 +1,13 @@
 from abc import ABC
 import numpy as np
-from ActivationFunctions import sigmoid, softmax, linear, relu
-from ActivationFunctions import sigmoid_deriv, relu_deriv
-from ActivationFunctions import linear_deriv, softmax_deriv
-from WeightInitialiser import constantOnesWI, constantZerosWI
-from WeightInitialiser import uniformWI, normalWI
-from WeightInitialiser import leCunNormalWI, leCunUniformWI
-from WeightInitialiser import xavierNormalWI, xavierUniformWI
-from WeightInitialiser import heNormalWI, heUniformWI
+from .ActivationFunctions import sigmoid, softmax, linear, relu
+from .ActivationFunctions import sigmoid_deriv, relu_deriv
+from .ActivationFunctions import linear_deriv, softmax_deriv
+from .WeightInitialiser import constantOnesWI, constantZerosWI
+from .WeightInitialiser import uniformWI, normalWI
+from .WeightInitialiser import leCunNormalWI, leCunUniformWI
+from .WeightInitialiser import xavierNormalWI, xavierUniformWI
+from .WeightInitialiser import heNormalWI, heUniformWI
 
 
 class DenseLayer(ABC):

@@ -1,9 +1,9 @@
 import numpy as np
-from MySequencial import MySequencial
-from DenseLayer import DenseLayer
-from ActivationFunctions import isActivationFunction
-from WeightInitialiser import isWeightInitialiser
-from LossFunctions import isLossFunction
+from .MySequencial import MySequencial
+from .DenseLayer import DenseLayer
+from .ActivationFunctions import isActivationFunction
+from .WeightInitialiser import isWeightInitialiser
+from .LossFunctions import isLossFunction
 import pandas as pd
 import argparse
 import os

@@ -1,7 +1,7 @@
 from abc import ABC
 import numpy as np
-from LossFunctions import setLossFunction
-from DenseLayer import DenseLayer
+from .LossFunctions import setLossFunction
+from .DenseLayer import DenseLayer
 import pickle
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -103,7 +103,7 @@ class MySequencial(ABC):
     def fit(self, data_train, data_valid, loss, alpha,
             batch_size, epochs, earlyStop, precisionRecall):
         if loss is None:
-            loss = "binaryCrossentropy"
+            loss = "binaryCrossentropyLoss"
         if alpha is None:
             alpha = 0.0314
         if batch_size is None:
@@ -200,8 +200,8 @@ class MySequencial(ABC):
         truePos = np.sum((y_prediction == 1) & (y_val == 1))
         falsePos = np.sum((y_prediction == 1) & (y_val == 0))
         falseNeg = np.sum((y_prediction == 0) & (y_val == 1))
-        precision = 0
-        recall = 0
+        precision = 0.0
+        recall = 0.0
         if (truePos + falsePos) != 0:
             precision = round((truePos / (truePos + falsePos)) * 100, 2)
         if (truePos + falseNeg) != 0:
